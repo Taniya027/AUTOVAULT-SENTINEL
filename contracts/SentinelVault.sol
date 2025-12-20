@@ -7,51 +7,67 @@ pragma solidity ^0.8.28;
  *         deposit tracking, withdrawals, and on-chain observability.
  */
 contract SentinelVault {
-    /// @notice Total ETH deposited into the vault
+    //State
+    address public owner;
     uint256 public totalDeposits;
+    
+    ISentinelMonitor public monitor;
+    
+    //Events
+    event Deposited(address indexed from, uint256 amount);
+    event Withdrawn(address indexed to, uint256 amount);
 
-    /// @notice Individual user balances
-    mapping(address => uint256) public balances;
+    //Modifiers
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not owner");
+        _;
+    }
 
-    /// @notice Emitted when a user deposits ETH
-    event Deposited(address indexed user, uint256 amount);
+    //Constructor
+    constructor() {
+        owner = msg.sender;
+    }
 
-    /// @notice Emitted when a user withdraws ETH
-    event Withdrawn(address indexed user, uint256 amount);
+    //Monitor Configuration
+    /// @notice Attach or update the SentinelMonitor contract
+    function setMonitor(address _monitor) external onlyOwner {
+        monitor = ISentinelMonitor(_monitor);
+    }
 
-    /**
-     * @notice Deposit ETH into the vault
-     */
+    //Vault Operations
+    /// @notice Deposit ETH into the vault
     function deposit() external payable {
-        require(msg.value > 0, "Deposit must be greater than zero");
+        require(msg.value > 0, "Zero deposit");
 
-        balances[msg.sender] += msg.value;
         totalDeposits += msg.value;
-
         emit Deposited(msg.sender, msg.value);
+
+        // Notify monitor (if configured)
+        if (address(monitor) != address(0)) {
+            monitor.checkDeposit(msg.value);
+        }
     }
 
-    /**
-     * @notice Withdraw ETH from the vault
-     * @param amount Amount of ETH to withdraw
-     */
-    function withdraw(uint256 amount) external {
-        require(amount > 0, "Amount must be greater than zero");
-        require(balances[msg.sender] >= amount, "Insufficient balance");
+    /// @notice Withdraw ETH from the vault
+    function withdraw(uint256 amount) external onlyOwner {
+        require(amount > 0, "Zero withdraw");
+        require(amount <= totalDeposits, "Insufficient balance");
 
-        balances[msg.sender] -= amount;
         totalDeposits -= amount;
-
-        (bool success, ) = msg.sender.call{value: amount}("");
-        require(success, "ETH transfer failed");
-
         emit Withdrawn(msg.sender, amount);
-    }
 
-    /**
-     * @notice Returns the total value locked (TVL)
-     */
-    function getTVL() external view returns (uint256) {
-        return totalDeposits;
+        // Notify monitor (if configured)
+        if (address(monitor) != address(0)) {
+            monitor.checkWithdraw(amount);
+        }
+
+        payable(owner).transfer(amount);
     }
+}
+
+//Monitor Interface
+
+interface ISentinelMonitor {
+    function checkDeposit(uint256 amount) external;
+    function checkWithdraw(uint256 amount) external;
 }
