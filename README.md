@@ -1,57 +1,97 @@
-# Sample Hardhat 3 Beta Project (`mocha` and `ethers`)
+# Autovault Sentinel
 
-This project showcases a Hardhat 3 Beta project using `mocha` for tests and the `ethers` library for Ethereum interactions.
+# Vault Health Monitoring on Stagenet
 
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+Autovault Sentinel is a Solidity-based ETH vault deployed on contract.dev Stagenet, designed to demonstrate how smart contract behavior can be observed, verified, and analyzed in real time using Stagenet’s native analytics and dashboards.
+Rather than focusing on complex business logic, the project emphasizes observability, stability, and insight, showcasing how developers can gain confidence in contract behavior during development.
 
-## Project Overview
+# Problem
 
-This example project includes:
+Smart contracts often fail silently.
+While contracts may compile and tests may pass, developers still lack clear visibility into:
+-When deposits and withdrawals occur
+-How vault balances evolve over time
+-Whether unexpected or abnormal behavior is happening during testing
+This lack of observability makes it difficult to validate contract behavior before mainnet deployment.
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using `mocha` and ethers.js
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+# Solution
 
-## Usage
+Autovault Sentinel combines:
+-A minimal ETH vault smart contract
+-A live Stagenet deployment
+-A custom analytics dashboard
+Together, these provide continuous visibility into vault state and activity, allowing developers and reviewers to clearly understand how the contract behaves over time.
 
-### Running Tests
+# Architecture Overview
 
-To run all the tests in the project, execute the following command:
+* SentinelVault.sol
+  ->Accepts ETH deposits
+  ->Allows withdrawals
+  ->Tracks cumulative deposits using totalDeposits()
 
-```shell
-npx hardhat test
-```
+* SentinelMonitor.sol
+  ->A lightweight monitoring-focused contract
+  ->Reads state from SentinelVault
+  ->Designed to support observability without modifying core vault logic
 
-You can also selectively run the Solidity or `mocha` tests:
+* Stagenet Deployment
 
-```shell
-npx hardhat test solidity
-npx hardhat test mocha
-```
+  ->Deployed on a private EVM testnet that replays mainnet blocks
+  ->Integrated with GitHub-based CI/CD via contract.dev
 
-### Make a deployment to Sepolia
+* Analytics Dashboard
+  ->Built using Stagenet’s native analytics tools
+  ->Tracks vault balance, activity, and interaction patterns
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
+# Stagenet Analytics Dashboard
+The project includes a custom dashboard titled:
 
-To run the deployment to a local chain:
+SentinelVault — Vault Health Dashboard
 
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
-```
+The dashboard contains the following components:
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+1. Current Vault Balance
+Displays the current ETH balance held by the SentinelVault contract on Stagenet, confirming that the contract is deployed, funded, and actively receiving value.
 
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
+2. Vault Balance (totalDeposits)
+A line-chart visualization based on the totalDeposits() function.
+This shows how the vault’s cumulative deposits change over time, making it easy to observe deposit activity, withdrawal impact, and sudden balance changes during testing.
 
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
+3. Vault Activity Stream
+A live stream of contract interactions, including:
+Deposit and withdrawal calls
+Caller addresses
+ETH values sent
+This provides immediate insight into how the vault is being used.
 
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
-```
+4. Wallet Interaction Monitoring
+The dashboard also includes a Wallet Interactions view, showing which wallet addresses are interacting with the SentinelVault contract and how frequently.
 
-After setting the variable, you can run the deployment with the Sepolia network:
+This helps identify:
+-Whether activity is concentrated or distributed
+-How users interact with the vault during testing
+-Potential anomalous interaction patterns early in development
 
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
-```
+# How to Test the Project
+
+Judges and reviewers can test the project directly on Stagenet:
+1. Open the SentinelVault Contract Workspace
+2. Navigate to the Interact tab
+3. Call deposit() with an ETH value
+4. Observe updates in:
+   Vault balance
+   Balance trend chart
+   Activity stream
+5. Call withdraw(amount) and observe the corresponding changes
+
+No additional setup is required.
+
+# Use of Stagenet
+
+This project actively uses Stagenet throughout development:
+
+-GitHub repository linked for CI/CD
+-Contracts automatically imported and versioned
+-Deployments tracked in Contract Workspaces
+-Custom analytics dashboard built using native tools
+Stagenet is central to both development and evaluation.
